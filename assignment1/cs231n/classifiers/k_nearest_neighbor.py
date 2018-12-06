@@ -177,12 +177,26 @@ class KNearestNeighbor(object):
         #前k个对应的label值
         label_k_small = self.y_train[x_k_small]
         #选择距离和最小的label
-
+        counts = np.bincount(label_k_small)
+        label_max = np.argmax(counts)
+        
         for ii in range(k):  
             closest_y[label_k_small[ii]] += dist_k_small[ii]
-        print label_k_small
-        print dist_k_small
-        print closest_y
+        
+        
+        for b in range(10):
+            if closest_y[b]!=0 and counts[b]!=0:
+                closest_y[b] = closest_y[b]/counts[b]
+           
+       
+        
+#         print label_k_small
+#         print np.bincount(label_k_small)
+#         print closest_y
+        
+#         print label_k_small
+#         print dist_k_small
+#         print closest_y
         label = 0
         for ind in range(10): 
             if closest_y[ind]!=0:
@@ -192,8 +206,19 @@ class KNearestNeighbor(object):
                     label = ind
 
         y_pred[i]=label 
+        y_pred[i]=label_max 
 #         print closest_y 
 #         print closest_y[label]
+
+        print 'closest_y mean:'
+        print closest_y
+
+        
+        print  'counts:'
+        print counts
+        print 'most_common:%d'%(label_max)
+        
+        print 'most small:'
         print label
         #########################################################################
         #                           END OF YOUR CODE                            # 
