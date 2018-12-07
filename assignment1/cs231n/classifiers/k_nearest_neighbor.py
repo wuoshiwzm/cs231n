@@ -117,18 +117,24 @@ class KNearestNeighbor(object):
     # Compute the l2 distance between all test points and all training      #
     # points without using any explicit loops, and store the result in      #
     # dists.                                                                #
-    #      不用循环得到要求的50*500 matrix                                                                 #
+    #      不用循环得到要求的50*500matrix                                     #
     # You should implement this function using only basic array operations; #
     # in particular you should not use functions from scipy.                #
     #                                                                       #
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    print X.shape
+    print '数据格式：'
+    print X.shape[0]
     print self.X_train.shape
-    X = np.repeat(X,500,axis=0)
-    X = np.reshape(X,(50,500,3072))
+    x_length = X.shape[0]
+    test_times = self.X_train.shape[0]
+    X = np.repeat(X,test_times,axis=0)
+
+    X = np.reshape(X,(x_length,test_times,3072))
+    
     dists = np.sum((X-self.X_train)**2,axis=2)
+    
     #########################################################################
     #                         END OF YOUR CODE                              #
     #########################################################################
@@ -153,7 +159,8 @@ class KNearestNeighbor(object):
         
         # A list of length k storing the labels of the k nearest neighbors to
         # the ith test point.
-        closest_y = np.zeros(10)
+        k_nearest = [];
+        
         #########################################################################
         # TODO:                                                                 #
         # Use the distance matrix to find the k nearest neighbors of the ith    #
@@ -161,8 +168,24 @@ class KNearestNeighbor(object):
         # neighbors. Store these labels in closest_y.                           #
         # Hint: Look up the function numpy.argsort.                             #
         #########################################################################
-        #距离从小到大的index排序
+        #距离从小到大的index排序 计算所有点距离的平均值 取平均值最近的点
         sort = np.argsort(dists[i])
+        k_nearest = sort[0:k]
+               
+       
+        dist_k_small = dists[i][k_nearest] #前k点个的具体距离
+#         print dist_k_small
+       
+        label_k_small = self.y_train[k_nearest] #前k个对应的label值
+#         print label_k_small
+        
+        y_pred[i] = label_k_small[np.argmax(label_k_small)]
+#         print y_pred[i]
+        
+        #选择距离和最小的label
+#         counts = np.bincount(label_k_small)
+#         label_max = np.argmax(counts)
+        
         #########################################################################
         # TODO:                                                                 #
         # Now that you have found the labels of the k nearest neighbors, you    #
@@ -170,56 +193,8 @@ class KNearestNeighbor(object):
         # Store this label in y_pred[i]. Break ties by choosing the smaller     #
         # label.                                                                #
         #########################################################################
-        #选出前k个最小的 数组切片
-        x_k_small = sort[0:k]
-        #前k点个的具体距离
-        dist_k_small = dists[i][x_k_small]
-        #前k个对应的label值
-        label_k_small = self.y_train[x_k_small]
-        #选择距离和最小的label
-        counts = np.bincount(label_k_small)
-        label_max = np.argmax(counts)
-        
-        for ii in range(k):  
-            closest_y[label_k_small[ii]] += dist_k_small[ii]
-        
-        
-        for b in range(10):
-            if closest_y[b]!=0 and counts[b]!=0:
-                closest_y[b] = closest_y[b]/counts[b]
-           
-       
-        
-#         print label_k_small
-#         print np.bincount(label_k_small)
-#         print closest_y
-        
-#         print label_k_small
-#         print dist_k_small
-#         print closest_y
-        label = 0
-        for ind in range(10): 
-            if closest_y[ind]!=0:
-                if closest_y[label]==0:
-                    label = ind
-                elif closest_y[ind]<closest_y[label]:
-                    label = ind
 
-        y_pred[i]=label 
-        y_pred[i]=label_max 
-#         print closest_y 
-#         print closest_y[label]
-
-        print 'closest_y mean:'
-        print closest_y
-
-        
-        print  'counts:'
-        print counts
-        print 'most_common:%d'%(label_max)
-        
-        print 'most small:'
-        print label
+ 
         #########################################################################
         #                           END OF YOUR CODE                            # 
         #########################################################################
