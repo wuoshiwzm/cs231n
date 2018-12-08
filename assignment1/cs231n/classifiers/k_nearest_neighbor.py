@@ -124,9 +124,9 @@ class KNearestNeighbor(object):
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    print '数据格式：'
-    print X.shape[0]
-    print self.X_train.shape
+    print '调用noloop：'
+#     print X.shape[0]
+#     print self.X_train.shape
     x_length = X.shape[0]
     test_times = self.X_train.shape[0]
     X = np.repeat(X,test_times,axis=0)
