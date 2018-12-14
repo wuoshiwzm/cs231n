@@ -91,19 +91,60 @@ def svm_loss_vectorized(W, X, y, reg):
     num_labels = W.shape[1]  # 图片总的分类数
     num_pics = X.shape[0]  # 总的图片数
 
-    # w*x
+    # x*w
     X_times_W = np.dot(X, W)
 
-    # 构造一个对角线是1,其他全是1的矩阵 C*C的矩阵
-    cal = np.eye(num_labels,dtype=int)
-    cal = cal-1
-    cal = cal + np.eye(num_labels,dtype=int)
-
     # svm的Li损失函数 Li = (1/num_pics)sum(y(i)!=j)(max(0,s(j)-s(yi)+1))
-    scores = X_times_W #N*C维  scores[0] ~ scores[N]
+    scores = X_times_W  # N*C维  scores[0] ~ scores[N]
 
-    row_max =scores.dot(cal)
-    Li = np.sum(np.max(scores,0),axis=0)
+    # 获取对应每一行（输入）的label值 s(yi)
+    scores = scores - scores[:, y]+1
+    # 然后scores矩阵对应每一行的s(yi)设为0  j=yi 时设为0，不计算mean
+    scores[:, y] = 0
+    scores_zeros = np.zeros(scores.shape)
+    scores_li = np.max(scores,scores_zeros)
+
+    # 再把计算后的scores矩阵每行就平均值
+    scores_li = scores_li/(num_pics-1)
+    Li = np.sum(scores_li, axis=0)
+
+    # b = lambda * R(W)
+    b = 0.5 * reg * np.sum(W * W)
+    Li = Li+b
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # 构造一个对角线是1,其他全是-1的矩阵 C*C的矩阵
+    cal = np.eye(num_labels, dtype=int)
+    cal = cal - 1
+    cal = cal + np.eye(num_labels, dtype=int)
+
+    # 全是1的矩阵
+    all_ones = np.ones(scores.shape)
+
+    all_zero_matrix = np.zeros(scores.shape)
+
+    # 构造出 sj-si+1
+    rx_matrix = np.max(np.dot(scores, cal), all_zero_matrix)
+    rx_matrix = np.sum(rx_matrix / num_pics, axis=1)
+
+    loss = rx_matrix
+
+    loss += 0.5 * reg * np.sum(W * W)
+    row_max = scores.dot(cal)
+    Li = np.sum(np.max(scores, 0), axis=0)
     print scores.shape
 
 
@@ -111,9 +152,6 @@ def svm_loss_vectorized(W, X, y, reg):
 
 
 
-    # b = lambda * R(W)
-    # 求R(W)
-    b = 0.5 * reg * np.sum(W * W)
 
 
 
