@@ -1,4 +1,6 @@
+# coding=UTF-8
 import numpy as np
+import pandas as pd
 from random import shuffle
 
 
@@ -28,6 +30,7 @@ def svm_loss_naive(W, X, y, reg):
     - loss as single float
     - gradient with respect to weights W; an array of same shape as W
     """
+
     dW = np.zeros(W.shape)  # 初始化dW为0
 
     # compute the loss and the gradient
@@ -98,90 +101,60 @@ def svm_loss_vectorized(W, X, y, reg):
     scores = X_times_W  # N*C维  scores[0] ~ scores[N]
 
     # 获取对应每一行（输入）的label值 s(yi)
-    scores = scores - scores[:, y]+1
+    scores_yi = np.choose(y, scores.T)
+    scores_yi = np.reshape(scores_yi,(500,1))
+    scores_yi = np.repeat(scores_yi, 10, axis=1)
+
+    scores = scores - scores_yi + 1
+
+
+
+
     # 然后scores矩阵对应每一行的s(yi)设为0  j=yi 时设为0，不计算mean
-    scores[:, y] = 0
+    for k in xrange(500):
+        scores[k][y[k]] = 0
+
     scores_zeros = np.zeros(scores.shape)
-    scores_li = np.max(scores,scores_zeros)
+
+    scores_li = np.maximum(scores, scores_zeros)
+
+
 
     # 再把计算后的scores矩阵每行就平均值
-    scores_li = scores_li/(num_pics-1)
-    Li = np.sum(scores_li, axis=0)
+    scores_li = scores_li / (num_pics - 1)
+
+    Li_coloumn = np.sum(scores_li)
+
+
+
+    Li = np.sum(Li_coloumn)
 
     # b = lambda * R(W)
     b = 0.5 * reg * np.sum(W * W)
-    Li = Li+b
+    Li = Li + b
 
 
 
+    print Li_coloumn
+    die
 
-
-
-
-
-
-
-
-
-
-
-
-    # 构造一个对角线是1,其他全是-1的矩阵 C*C的矩阵
-    cal = np.eye(num_labels, dtype=int)
-    cal = cal - 1
-    cal = cal + np.eye(num_labels, dtype=int)
-
-    # 全是1的矩阵
-    all_ones = np.ones(scores.shape)
-
-    all_zero_matrix = np.zeros(scores.shape)
-
-    # 构造出 sj-si+1
-    rx_matrix = np.max(np.dot(scores, cal), all_zero_matrix)
-    rx_matrix = np.sum(rx_matrix / num_pics, axis=1)
-
-    loss = rx_matrix
-
-    loss += 0.5 * reg * np.sum(W * W)
-    row_max = scores.dot(cal)
-    Li = np.sum(np.max(scores, 0), axis=0)
-    print scores.shape
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    num_features, num_classes = W.shape
-    num_train = X.shape[0]
-
-    XW = np.dot(X, W)
-
-    Y_true = XW[np.arange(num_train), y]
-
-    margin = XW.T - Y_true + 1
-    margin = margin.T
-    margin[np.arange(num_train), y] = 0
-
-    margin = np.maximum(margin, np.zeros((num_train, num_classes)))
-    loss = np.sum(margin)
-
-    loss /= num_train
-    loss += 0.5 * reg * np.sum(W * W)
+    #
+    # num_features, num_classes = W.shape
+    # num_train = X.shape[0]
+    #
+    # XW = np.dot(X, W)
+    #
+    # Y_true = XW[np.arange(num_train), y]
+    #
+    # margin = XW.T - Y_true + 1
+    # margin = margin.T
+    # margin[np.arange(num_train), y] = 0
+    #
+    # margin = np.maximum(margin, np.zeros((num_train, num_classes)))
+    # loss = np.sum(margin)
+    #
+    # loss /= num_train
+    # loss += 0.5 * reg * np.sum(W * W)
 
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -197,22 +170,23 @@ def svm_loss_vectorized(W, X, y, reg):
     # loss.                                                                     #
     #############################################################################
 
-    # Binarize into integers
-    binary = margin
-    binary[margin > 0] = 1
-
-    # Perform the two operations simultaneously
-    # (1) for all j: dW[j,:] = sum_{i, j produces positive margin with i} X[:,i].T
-    # (2) for all i: dW[y[i],:] = sum_{j != y_i, j produces positive margin with i} -X[:,i].T
-    col_sum = np.sum(binary, axis=1)
-    binary[np.arange(num_train), y] = -col_sum[range(num_train)]
-    dW = np.dot(X.T, binary)
-
-    # Divide
-    dW /= num_train
-
-    # Regularize
-    dW += reg * W
+    # 开始求梯度
+    # # Binarize into integers
+    # binary = margin
+    # binary[margin > 0] = 1
+    #
+    # # Perform the two operations simultaneously
+    # # (1) for all j: dW[j,:] = sum_{i, j produces positive margin with i} X[:,i].T
+    # # (2) for all i: dW[y[i],:] = sum_{j != y_i, j produces positive margin with i} -X[:,i].T
+    # col_sum = np.sum(binary, axis=1)
+    # binary[np.arange(num_train), y] = -col_sum[range(num_train)]
+    # dW = np.dot(X.T, binary)
+    #
+    # # Divide
+    # dW /= num_train
+    #
+    # # Regularize
+    # dW += reg * W
 
     #############################################################################
     #                             END OF YOUR CODE                              #
