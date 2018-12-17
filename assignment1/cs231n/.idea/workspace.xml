@@ -1,16 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="ea9b6615-3ee1-4156-806f-2a24ccc00396" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../3 损失函数与优化.docx" beforeDir="false" afterPath="$PROJECT_DIR$/../../3 损失函数与优化.docx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../.ipynb_checkpoints/svm-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../.ipynb_checkpoints/svm-checkpoint.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/cs231n.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cs231n.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/classifiers/linear_classifier.py" beforeDir="false" afterPath="$PROJECT_DIR$/classifiers/linear_classifier.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/classifiers/linear_svm.py" beforeDir="false" afterPath="$PROJECT_DIR$/classifiers/linear_svm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../svm.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../svm.ipynb" afterDir="false" />
-    </list>
+    <list default="true" id="ea9b6615-3ee1-4156-806f-2a24ccc00396" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,6 +66,7 @@
     <session id="1657789029">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
+          <entry key="project.closed" value="1" />
           <entry key="project.open.time.10" value="1" />
           <entry key="project.opened" value="1" />
         </counts>
@@ -152,7 +144,7 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="15" />
     <option name="y" value="91" />
     <option name="width" value="1764" />
@@ -224,7 +216,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1616" height="876" extended-state="7" />
+    <frame x="-8" y="-8" width="1616" height="876" extended-state="6" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.15462612" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
