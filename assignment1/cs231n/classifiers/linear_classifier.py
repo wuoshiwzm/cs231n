@@ -46,9 +46,6 @@ class LinearClassifier(object):
 
             #########################################################################
             # TODO:                                                                 #
-            # 采样                                                                   #
-            # 采样                                                                   #
-            # 采样                                                                   #
             # Sample batch_size elements from the training data and their           #
             # corresponding labels to use in this round of gradient descent.        #
             # Store the data in X_batch and their corresponding labels in           #
@@ -65,6 +62,7 @@ class LinearClassifier(object):
 
             X_batch = X[indices, :]
             y_batch = y[indices]
+            # print X_batch.shape
             # print len(y_batch)
             # die
 
@@ -96,6 +94,7 @@ class LinearClassifier(object):
             if verbose and it % 100 == 0:
                 print 'iteration %d / %d: loss %f' % (it, num_iters, loss)
 
+        print 'learning_rate %e, regularization strength %e' % (learning_rate, reg)
         return loss_history
 
     def predict(self, X):
