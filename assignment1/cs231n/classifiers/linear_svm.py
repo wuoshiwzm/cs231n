@@ -184,7 +184,7 @@ def svm_loss_vectorized(W, X, y, reg):
     dW = np.dot(X.T, binary)
     #
     # Divide
-    dW = num_train
+    dW /= num_train
     #
     # Regularize 正则化项1/2 * reg *sum(W^2)求导因为有个1/2约掉了，就剩reg * W
     dW += reg * W
