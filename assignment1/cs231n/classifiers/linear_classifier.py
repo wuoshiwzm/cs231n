@@ -31,6 +31,8 @@ class LinearClassifier(object):
         A list containing the value of the loss function at each training iteration.
         """
         num_train, dim = X.shape
+        # print X.shape
+        # die
         num_classes = np.max(y) + 1  # assume y takes values 0...K-1 where K is number of classes
         if self.W is None:
             # 初始化一个W
