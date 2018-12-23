@@ -90,8 +90,8 @@ def softmax_loss_vectorized(W, X, y, reg):
     # regularization!                                                           #
     #############################################################################
 
-
-
+    scores = np.dot(X,W)
+    scores -= np.max(scores)
 
 
 
