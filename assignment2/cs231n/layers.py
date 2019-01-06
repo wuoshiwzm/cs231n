@@ -71,42 +71,26 @@ def affine_backward(dout, cache):
 
     print X.shape
     print w.shape
-    dx = np.dot(dout,w.T)
-    print dx.shape
-
-    die
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    X = np.reshape(x, (x.shape[0], -1))
-    N, D = X.shape
-
     dX = np.dot(dout, w.T)
-    dw = np.dot(X.T, dout)
-    db = np.dot(dout.T, np.ones((N, 1)))
+    dw = np.dot(X.T, dout)  #(D,N)*(N,M)=(D,M)
+    db = np.dot(dout.T, np.ones((N,1)))
 
-    dx = np.reshape(dX, x.shape)
-    db = np.reshape(db, (db.shape[0],))
+
+    # reshape to input
+    dx = np.reshape(dX,x.shape)
+    db = np.reshape(db,(b.shape[0],))
+
+
+
+    # X = np.reshape(x, (x.shape[0], -1))
+    # N, D = X.shape
+    #
+    # dX = np.dot(dout, w.T)
+    # dw = np.dot(X.T, dout)
+    # db = np.dot(dout.T, np.ones((N, 1)))
+    #
+    # dx = np.reshape(dX, x.shape)
+    # db = np.reshape(db, (db.shape[0],))
 
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -130,7 +114,12 @@ def relu_forward(x):
     # TODO: Implement the ReLU forward pass.                                    #
     #############################################################################
 
-    out = np.maximum(0, x)
+
+    out = np.maximum(0,x)
+
+
+
+    # out = np.maximum(0, x)
 
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -154,9 +143,17 @@ def relu_backward(dout, cache):
     #############################################################################
     # TODO: Implement the ReLU backward pass.                                   #
     #############################################################################
-
     dx = np.array(dout, copy=True)
     dx[x <= 0] = 0
+
+
+
+
+
+    #
+    #
+    # dx = np.array(dout, copy=True)
+    # dx[x <= 0] = 0
 
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -166,7 +163,7 @@ def relu_backward(dout, cache):
 
 def batchnorm_forward(x, gamma, beta, bn_param):
     """
-    Forward pass for batch normalization.
+    Forward pass for batch normalization. 归一化
 
     During training the sample mean and (uncorrected) sample variance are
     computed from minibatch statistics and used to normalize the incoming data.
