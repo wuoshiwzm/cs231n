@@ -68,10 +68,10 @@ def affine_backward(dout, cache):
     X = np.reshape(x, (x.shape[0], -1))
     N, D = X.shape
 
-    out = np.dot(X,w)
+
     print X.shape
     print w.shape
-    dx = np.dot(out,w.T)
+    dx = np.dot(dout,w.T)
     print dx.shape
 
     die
