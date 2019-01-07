@@ -1,6 +1,9 @@
+# coding=UTF-8
 import numpy as np
 from random import randrange
 
+# 应用导数的定义求导（梯度）
+# 这里的f为要在x处求梯度的函数
 def eval_numerical_gradient(f, x, verbose=True, h=0.00001):
   """ 
   a naive implementation of numerical gradient of f at x 
@@ -15,6 +18,7 @@ def eval_numerical_gradient(f, x, verbose=True, h=0.00001):
   while not it.finished:
 
     # evaluate function at x+h
+    #
     ix = it.multi_index
     oldval = x[ix]
     x[ix] = oldval + h # increment by h
@@ -22,16 +26,20 @@ def eval_numerical_gradient(f, x, verbose=True, h=0.00001):
     x[ix] = oldval - h
     fxmh = f(x) # evaluate f(x - h)
     x[ix] = oldval # restore
-
     # compute the partial derivative with centered formula
+    # 这里的fxph fxmh 是数
     grad[ix] = (fxph - fxmh) / (2 * h) # the slope
+
     if verbose:
       print ix, grad[ix]
     it.iternext() # step to next dimension
+  # print "x's shape:",x.shape
+  # print "grad's shape:", grad.shape
 
   return grad
 
-
+# 应用导数的定义求导（梯度）
+# 这里的f为前向传播
 def eval_numerical_gradient_array(f, x, df, h=1e-5):
   """
   Evaluate a numeric gradient for a function that accepts a numpy
@@ -40,17 +48,24 @@ def eval_numerical_gradient_array(f, x, df, h=1e-5):
   grad = np.zeros_like(x)
   it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
   while not it.finished:
+    # x的每一个index
     ix = it.multi_index
-    
+
     oldval = x[ix]
     x[ix] = oldval + h
+    # x加上h后的f(x)
     pos = f(x).copy()
+    # x减去h后的f(x)
     x[ix] = oldval - h
     neg = f(x).copy()
     x[ix] = oldval
-    
+    # print "pos :", pos.shape
+    # 这里的pos neg是数组，有sum的步骤
     grad[ix] = np.sum((pos - neg) * df) / (2 * h)
     it.iternext()
+    # print grad[ix]
+  # print "x's shape:",x.shape
+  # print "grad's shape:", grad.shape
   return grad
 
 

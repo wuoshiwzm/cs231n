@@ -753,6 +753,6 @@ def softmax_loss(x, y):
     N = x.shape[0]
     loss = -np.sum(np.log(probs[np.arange(N), y])) / N
     dx = probs.copy()
-    dx[np.arange(N), y] -= 1
+    dx[np.arange(N), y] -= 1 # 注意softmax的求导异常简单！
     dx /= N
     return loss, dx

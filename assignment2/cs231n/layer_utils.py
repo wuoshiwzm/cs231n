@@ -1,3 +1,4 @@
+# coding=UTF-8
 from cs231n.layers import *
 from cs231n.fast_layers import *
 
@@ -14,9 +15,9 @@ def affine_relu_forward(x, w, b):
   - out: Output from the ReLU
   - cache: Object to give to the backward pass
   """
-  a, fc_cache = affine_forward(x, w, b)
-  out, relu_cache = relu_forward(a)
-  cache = (fc_cache, relu_cache)
+  a, fc_cache = affine_forward(x, w, b) # 先前向传播
+  out, relu_cache = relu_forward(a) # 再过relu层
+  cache = (fc_cache, relu_cache) # 把linear层和relu层的缓存都保存下来 fc_cache=(x, w, b) relu_cache=x
   return out, cache
 
 
@@ -25,8 +26,8 @@ def affine_relu_backward(dout, cache):
   Backward pass for the affine-relu convenience layer
   """
   fc_cache, relu_cache = cache
-  da = relu_backward(dout, relu_cache)
-  dx, dw, db = affine_backward(da, fc_cache)
+  da = relu_backward(dout, relu_cache) # relu的返回dx
+  dx, dw, db = affine_backward(da, fc_cache) # relu返回的da就相当于affine_backward的dout
   return dx, dw, db
 
 
