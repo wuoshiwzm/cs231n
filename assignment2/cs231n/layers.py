@@ -68,9 +68,6 @@ def affine_backward(dout, cache):
     X = np.reshape(x, (x.shape[0], -1))
     N, D = X.shape
 
-
-    print X.shape
-    print w.shape
     dX = np.dot(dout, w.T)
     dw = np.dot(X.T, dout)  #(D,N)*(N,M)=(D,M)
     db = np.dot(dout.T, np.ones((N,1)))
@@ -753,6 +750,6 @@ def softmax_loss(x, y):
     N = x.shape[0]
     loss = -np.sum(np.log(probs[np.arange(N), y])) / N
     dx = probs.copy()
-    dx[np.arange(N), y] -= 1
+    dx[np.arange(N), y] -= 1 # 注意softmax的求导异常简单！
     dx /= N
     return loss, dx
