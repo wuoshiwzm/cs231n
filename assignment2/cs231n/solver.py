@@ -102,17 +102,24 @@ class Solver(object):
       training.
     """
     self.model = model
+    # 训练集
     self.X_train = data['X_train']
     self.y_train = data['y_train']
+    # 检验集
     self.X_val = data['X_val']
     self.y_val = data['y_val']
     
-    # Unpack keyword arguments
+    # Unpack keyword arguments 解压
+    # Python 字典 pop() 方法删除字典给定键 key 及对应的值，返回值为被删除的值。key 值必须给出。 否则，返回 default 值。 pop(key[,default])
     self.update_rule = kwargs.pop('update_rule', 'sgd')
     self.optim_config = kwargs.pop('optim_config', {})
+    # lr:learning rate
     self.lr_decay = kwargs.pop('lr_decay', 1.0)
     self.batch_size = kwargs.pop('batch_size', 100)
     self.num_epochs = kwargs.pop('num_epochs', 10)
+    # （1）batchsize：批大小。在深度学习中，一般采用SGD训练，即每次训练在训练集中取batchsize个样本训练；
+    # （2）iteration：1个iteration等于使用batchsize个样本训练一次；
+    # （3）epoch：1个epoch等于使用训练集中的全部样本训练一次；
 
     self.print_every = kwargs.pop('print_every', 10)
     self.verbose = kwargs.pop('verbose', True)
@@ -158,11 +165,12 @@ class Solver(object):
     """
     # Make a minibatch of training data
     num_train = self.X_train.shape[0]
+    # 从num_train生成的数组中  中随机选择 self.batch_size个 对应的indices，有放回，可重复
     batch_mask = np.random.choice(num_train, self.batch_size)
     X_batch = self.X_train[batch_mask]
     y_batch = self.y_train[batch_mask]
 
-    # Compute loss and gradient
+    # Compute loss and gradient 计算loss与gradient 梯度
     loss, grads = self.model.loss(X_batch, y_batch)
     self.loss_history.append(loss)
 
@@ -171,7 +179,9 @@ class Solver(object):
       if isinstance(w, np.ndarray):
         dw = grads[p]
         config = self.optim_configs[p]
+        # 更新参数 调用update_rule方法,如函数def sgd(w, dw, config=None):
         next_w, next_config = self.update_rule(w, dw, config)
+        # 将更新后的参数进行赋值
         self.model.params[p] = next_w
         self.optim_configs[p] = next_config
 
@@ -181,19 +191,19 @@ class Solver(object):
     Check accuracy of the model on the provided data.
     
     Inputs:
-    - X: Array of data, of shape (N, d_1, ..., d_k)
+    - X: Array of data, of shape (N, d_1, ..., d_k)     计算时转化为shape(N,D)
     - y: Array of labels, of shape (N,)
     - num_samples: If not None, subsample the data and only test the model
       on num_samples datapoints.
     - batch_size: Split X and y into batches of this size to avoid using too
-      much memory.
+      much memory.随机梯度下降SGD时用到
       
     Returns:
     - acc: Scalar giving the fraction of instances that were correctly
       classified by the model.
     """
     
-    # Maybe subsample the data
+    # Maybe subsample the data 部分采样
     N = X.shape[0]
     if num_samples is not None and N > num_samples:
       mask = np.random.choice(N, num_samples)
@@ -206,11 +216,15 @@ class Solver(object):
     if N % batch_size != 0:
       num_batches += 1
     y_pred = []
+
     for i in xrange(num_batches):
       start = i * batch_size
       end = (i + 1) * batch_size
       scores = self.model.loss(X[start:end])
+      # 得分最高的就是对应预测的label
       y_pred.append(np.argmax(scores, axis=1))
+
+    # numpy.hstack 水平方向把数组堆叠
     y_pred = np.hstack(y_pred)
     acc = np.mean(y_pred == y)
 
@@ -221,8 +235,11 @@ class Solver(object):
     """
     Run optimization to train the model.
     """
+    # 训练集的数量个数
     num_train = self.X_train.shape[0]
+    # 一一个iterate循环一个batch_size的数据, 一个epoch，把数据全部走一遍，有多个独立的iterate
     iterations_per_epoch = max(num_train / self.batch_size, 1)
+    # 一个epoch包含多个iteration
     num_iterations = self.num_epochs * iterations_per_epoch
 
     for t in xrange(num_iterations):
@@ -235,6 +252,7 @@ class Solver(object):
 
       # At the end of every epoch, increment the epoch counter and decay the
       # learning rate.
+      # epoch计算增加 learning_rte减小
       epoch_end = (t + 1) % iterations_per_epoch == 0
       if epoch_end:
         self.epoch += 1

@@ -75,7 +75,7 @@ def affine_backward(dout, cache):
 
     # reshape to input
     dx = np.reshape(dX,x.shape)
-    db = np.reshape(db,(b.shape[0],))
+    db = np.reshape(db,(db.shape[0],))
 
 
 

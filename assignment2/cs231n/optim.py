@@ -1,3 +1,4 @@
+# coding=UTF-8
 import numpy as np
 
 """
@@ -5,6 +6,7 @@ This file implements various first-order update rules that are commonly used for
 training neural networks. Each update rule accepts current weights and the
 gradient of the loss with respect to those weights and produces the next set of
 weights. Each update rule has the same interface:
+w->dw->new_w->dnew_w->...
 
 def update(w, dw, config=None):
 
@@ -13,7 +15,7 @@ Inputs:
   - dw: A numpy array of the same shape as w giving the gradient of the
     loss with respect to w.
   - config: A dictionary containing hyperparameter values such as learning rate,
-    momentum, etc. If the update rule requires caching values over many
+    momentum(动量), etc. If the update rule requires caching values over many
     iterations, then config will also hold these cached values.
 
 Returns:
@@ -40,6 +42,7 @@ def sgd(w, dw, config=None):
   if config is None: config = {}
   config.setdefault('learning_rate', 1e-2)
 
+  # 更新w
   w -= config['learning_rate'] * dw
   return w, config
 
@@ -52,7 +55,7 @@ def sgd_momentum(w, dw, config=None):
   - learning_rate: Scalar learning rate.
   - momentum: Scalar between 0 and 1 giving the momentum value.
     Setting momentum = 0 reduces to sgd.
-  - velocity: A numpy array of the same shape as w and dw used to store a moving
+  - velocity速度: A numpy array of the same shape as w and dw used to store a moving
     average of the gradients.
   """
   if config is None: config = {}
@@ -65,10 +68,18 @@ def sgd_momentum(w, dw, config=None):
   # TODO: Implement the momentum update formula. Store the updated value in   #
   # the next_w variable. You should also use and update the velocity v.       #
   #############################################################################
-  mu = config['momentum']
-  lr = config['learning_rate']
-  v = mu*v - lr*dw
-  next_w = w + v
+
+  momentum = config['momentum']
+  learning_rate = config['learning_rate']
+  # 更新v
+  v = momentum*v- learning_rate * dw
+  next_w =w + v
+
+
+  # mu = config['momentum']
+  # lr = config['learning_rate']
+  # v = mu*v - lr*dw
+  # next_w = w + v
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

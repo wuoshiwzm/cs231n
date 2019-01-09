@@ -222,7 +222,8 @@ class FullyConnectedNet(object):
         self.num_layers = 1 + len(hidden_dims)
         self.dtype = dtype
         self.params = {}
-
+        # print hidden_dims
+        # print self.num_layers
         ############################################################################
         # TODO: Initialize the parameters of the network, storing all values in    #
         # the self.params dictionary. Store weights and biases for the first layer #
@@ -239,7 +240,6 @@ class FullyConnectedNet(object):
         layer_dim = [input_dim] + hidden_dims + [num_classes]
 
         for i in range(1, self.num_layers + 1):
-
             Wi = 'W' + str(i)
             bi = 'b' + str(i)
             gammai = 'gamma' + str(i)
@@ -275,8 +275,11 @@ class FullyConnectedNet(object):
             self.bn_params = [{'mode': 'train'} for i in xrange(self.num_layers - 1)]
 
         # Cast all parameters to the correct datatype
-        for k, v in self.params.iteritems():
-            self.params[k] = v.astype(dtype)
+        for k,v in self.params.iteritems():
+            self.params[k]=v.astype(dtype)
+
+        # for k, v in self.params.iteritems():
+        #     self.params[k] = v.astype(dtype)
 
     def loss(self, X, y=None):
         """
@@ -296,6 +299,8 @@ class FullyConnectedNet(object):
                 bn_param[mode] = mode
 
         scores = None
+
+        # 下面是前向传播
         ############################################################################
         # TODO: Implement the forward pass for the fully-connected net, computing  #
         # the class scores for X and storing them in the scores variable.          #
@@ -308,6 +313,10 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
+        #
+        # affine_relu_cache = {}
+        # input_x = X
+        #
 
         affine_relu_cache = {}
         affine_bn_relu_cache = {}
@@ -315,10 +324,11 @@ class FullyConnectedNet(object):
         input_x = X
 
         # layer 1 to self.num_layers - 1
-        for i in range(1, self.num_layers):
-            Wi = 'W' + str(i)
-            bi = 'b' + str(i)
 
+        for i in range(1,self.num_layers):
+            # print 'test',self.num_layers
+            Wi = 'W'+str(i)
+            bi = 'b'+str(i)
             if self.use_batchnorm:
 
                 gammai = 'gamma' + str(i)
@@ -327,19 +337,41 @@ class FullyConnectedNet(object):
                 input_x, affine_bn_relu_cache[i] = affine_bn_relu_forward(input_x, self.params[Wi],
                                                                           self.params[bi], self.params[gammai],
                                                                           self.params[betai], self.bn_params[i - 1])
-
             else:
-
+                # 更新input_x为下一层的输入
                 input_x, affine_relu_cache[i] = affine_relu_forward(input_x, self.params[Wi], self.params[bi])
 
-            if self.use_dropout:
-                input_x, dropout_cache[i] = dropout_forward(input_x, self.dropout_param)
-
-        # last layer
+        #     for last lyer - only affine, no relu
         Wi = 'W' + str(self.num_layers)
         bi = 'b' + str(self.num_layers)
-        affine_out, affine_cache = affine_forward(input_x, self.params[Wi], self.params[bi])
+        affine_out,affine_cache = affine_forward(input_x, self.params[Wi], self.params[bi])
         scores = affine_out
+
+        # for i in range(1, self.num_layers):
+        #     Wi = 'W' + str(i)
+        #     bi = 'b' + str(i)
+        #     # batch normalize
+        #     if self.use_batchnorm:
+        #
+        #         gammai = 'gamma' + str(i)
+        #         betai = 'beta' + str(i)
+        #
+        #         input_x, affine_bn_relu_cache[i] = affine_bn_relu_forward(input_x, self.params[Wi],
+        #                                                                   self.params[bi], self.params[gammai],
+        #                                                                   self.params[betai], self.bn_params[i - 1])
+        #
+        #     else:
+        #
+        #         input_x, affine_relu_cache[i] = affine_relu_forward(input_x, self.params[Wi], self.params[bi])
+        #
+        #     if self.use_dropout:
+        #         input_x, dropout_cache[i] = dropout_forward(input_x, self.dropout_param)
+        #
+        # # last layer
+        # Wi = 'W' + str(self.num_layers)
+        # bi = 'b' + str(self.num_layers)
+        # affine_out, affine_cache = affine_forward(input_x, self.params[Wi], self.params[bi])
+        # scores = affine_out
 
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -363,16 +395,28 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
+        # softmax_loss(x, y)  return loss, dx
 
-        loss, dscores = softmax_loss(scores, y)
+        loss,dscores =  softmax_loss(scores, y)
+
+
+        # loss, dscores = softmax_loss(scores, y)
 
         # last layer
-        dXi, dWi, dbi = affine_backward(dscores, affine_cache)
 
+        dXi,dWi, dbi = affine_backward(dscores,affine_cache)# affine_backward(dout, cache):  return dx, dw, db
+
+        # dXi, dWi, dbi = affine_backward(dscores, affine_cache)
+
+        # 表示 Wi:self.params['W' + str(self.num_layers)]
+        grads['W'+str(self.num_layers)] = dWi + self.reg * self.params['W'+str(self.num_layers)]
         grads['W' + str(self.num_layers)] = dWi + self.reg * self.params['W' + str(self.num_layers)]
         grads['b' + str(self.num_layers)] = dbi
 
+
+
         # other layers
+        # range(start, stop[, step])
         for i in range(self.num_layers - 1, 0, -1):
 
             if self.use_dropout:
@@ -387,12 +431,14 @@ class FullyConnectedNet(object):
                 grads['beta' + str(i)] = dbetai
 
             else:
-
+                # dXi就是前一个节点的梯度 dout
+                # 注意这里是affine_relu, 因为每一个affine都根着一个relu
                 dXi, dWi, dbi = affine_relu_backward(dXi, affine_relu_cache[i])
                 grads['W' + str(i)] = dWi + self.reg * self.params['W' + str(i)]
                 grads['b' + str(i)] = dbi
 
         # add loss with regularization
+        # loss是一个数值
         for i in range(1, self.num_layers + 1):
             loss += 0.5 * self.reg * np.sum(self.params['W' + str(i)] * self.params['W' + str(i)])
 
