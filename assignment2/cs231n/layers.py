@@ -30,7 +30,7 @@ def affine_forward(x, w, b):
 
     X = np.reshape(x, (x.shape[0], -1))
     N, D = X.shape
-    out = np.dot(X, w) + b #注意这里b会broadcast 升维，本来b只对一条X的bias
+    out = np.dot(X, w) + b  # 注意这里b会broadcast 升维，本来b只对一条X的bias
 
     # print out
     # X = np.reshape(x, (x.shape[0], -1))
@@ -69,15 +69,12 @@ def affine_backward(dout, cache):
     N, D = X.shape
 
     dX = np.dot(dout, w.T)
-    dw = np.dot(X.T, dout)  #(D,N)*(N,M)=(D,M)
-    db = np.dot(dout.T, np.ones((N,1)))
-
+    dw = np.dot(X.T, dout)  # (D,N)*(N,M)=(D,M)
+    db = np.dot(dout.T, np.ones((N, 1)))
 
     # reshape to input
-    dx = np.reshape(dX,x.shape)
-    db = np.reshape(db,(db.shape[0],))
-
-
+    dx = np.reshape(dX, x.shape)
+    db = np.reshape(db, (db.shape[0],))
 
     # X = np.reshape(x, (x.shape[0], -1))
     # N, D = X.shape
@@ -111,10 +108,7 @@ def relu_forward(x):
     # TODO: Implement the ReLU forward pass.                                    #
     #############################################################################
 
-
-    out = np.maximum(0,x)
-
-
+    out = np.maximum(0, x)
 
     # out = np.maximum(0, x)
 
@@ -142,10 +136,6 @@ def relu_backward(dout, cache):
     #############################################################################
     dx = np.array(dout, copy=True)
     dx[x <= 0] = 0
-
-
-
-
 
     #
     #
@@ -196,6 +186,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     - out: of shape (N, D)
     - cache: A tuple of values needed in the backward pass
     """
+
     mode = bn_param['mode']
     eps = bn_param.get('eps', 1e-5)
     momentum = bn_param.get('momentum', 0.9)
@@ -219,8 +210,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # the momentum variable to update the running mean and running variance,    #
         # storing your result in the running_mean and running_var variables.        #
         #############################################################################
-
-        sample_mean = np.mean(x, axis=0)
+        sample_mean = np.mean(x, axis=0)  # 对所有样本计算均值，只算一次,针对每个维度求计算
         sample_var = np.var(x, axis=0)
 
         x_normalized = (x - sample_mean) / np.sqrt(sample_var + eps)
@@ -228,9 +218,20 @@ def batchnorm_forward(x, gamma, beta, bn_param):
 
         cache = (x, sample_mean, sample_var, x_normalized, beta, gamma, eps)
 
-        # update running_mean and runing_var
         bn_param['running_mean'] = momentum * running_mean + (1 - momentum) * sample_mean
         bn_param['running_var'] = momentum * running_var + (1 - momentum) * sample_var
+
+        # sample_mean = np.mean(x, axis=0)
+        # sample_var = np.var(x, axis=0)
+        #
+        # x_normalized = (x - sample_mean) / np.sqrt(sample_var + eps)
+        # out = gamma * x_normalized + beta
+        #
+        # cache = (x, sample_mean, sample_var, x_normalized, beta, gamma, eps)
+        #
+        # # update running_mean and runing_var
+        # bn_param['running_mean'] = momentum * running_mean + (1 - momentum) * sample_mean
+        # bn_param['running_var'] = momentum * running_var + (1 - momentum) * sample_var
 
         #############################################################################
         #                             END OF YOUR CODE                              #
@@ -242,17 +243,22 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # and shift the normalized data using gamma and beta. Store the result in   #
         # the out variable.                                                         #
         #############################################################################
+        # test-time  已经计算了running_mean 和 running_var
         x_normalized = (x - running_mean) / np.sqrt(running_var + eps)
         out = gamma * x_normalized + beta
+        # print gamma.shape
+        # print x_normalized.shape
+        # print beta.shape
+
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
     else:
         raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
-
     return out, cache
 
 
+# 更新 dgamma dbeta dx
 def batchnorm_backward(dout, cache):
     """
     Backward pass for batch normalization.
@@ -264,6 +270,7 @@ def batchnorm_backward(dout, cache):
     Inputs:
     - dout: Upstream derivatives, of shape (N, D)
     - cache: Variable of intermediates from batchnorm_forward.
+        (x,sample_mean,sample_var,x_normalized,beta,gamma,eps)
 
     Returns a tuple of:
     - dx: Gradient with respect to inputs x, of shape (N, D)
@@ -276,16 +283,53 @@ def batchnorm_backward(dout, cache):
     # results in the dx, dgamma, and dbeta variables.                           #
     #############################################################################
 
+    # sample_mean = np.mean(x, axis=0)
+    # sample_var = np.var(x, axis=0)
+    # x_normalized = (x - sample_mean) / np.sqrt(sample_var + eps)
+    # out = gamma * x_normalized + beta
+
     (x, sample_mean, sample_var, x_normalized, beta, gamma, eps) = cache
-    N = x.shape[0]
+    N, D = x.shape
+
+
     dbeta = np.sum(dout, axis=0)
-    dgamma = np.sum(x_normalized * dout, axis=0)
-    dx_normalized = gamma * dout
-    dsample_var = np.sum(-1.0 / 2 * dx_normalized * (x - sample_mean) / (sample_var + eps) ** (3.0 / 2), axis=0)
-    dsample_mean = np.sum(-1 / np.sqrt(sample_var + eps) * dx_normalized, axis=0) + 1.0 / N * dsample_var * np.sum(
-        -2 * (x - sample_mean), axis=0)
-    dx = 1 / np.sqrt(sample_var + eps) * dx_normalized + dsample_var * 2.0 / N * (
-            x - sample_mean) + 1.0 / N * dsample_mean
+    # beta.shape [D,]
+
+
+    dgamma = np.sum(x_normalized*dout)
+    # (x_normalized*dout).shape  (x_normalized*dout).shape
+    # gamma.shape [D,]
+
+    dx_normalized = dout * gamma # 注意这里不是点乘
+    # x_normalized.shape (N,D)
+
+    #  sample_var = np.var(x, axis=0)
+    #  sample_var.shape (D,)
+    # 对x_normalized 的表达式 求 sample_var 的导数
+    dsample_var =np.sum(dx_normalized * (-1.0/2)*(x-sample_mean) * (sample_var+eps)**(-3.0/2), axis=0)
+
+    #  同上，x_normalized 的表达式 求 sample_mean 的导数, 还有dsample_var 求 sample_mean求导
+    dsample_mean = np.sum(dx_normalized * (-1.0) /np.sqrt(sample_var+eps),axis=0) + np.sum(dsample_var *(-2.0/N) * (x-sample_mean),axis=0)
+
+    #对dx_normalized求导 + 对dsample_var求导 +对dsample_mean求导
+    dx = dx_normalized * 1.0/np.sqrt(sample_var+eps) + dsample_var*(2.0/N)*(x-sample_mean) + dsample_mean * 1.0/N
+
+
+
+
+    # (x, sample_mean, sample_var, x_normalized, beta, gamma, eps) = cache
+    # N = x.shape[0]
+    # dbeta = np.sum(dout, axis=0)
+    # dgamma = np.sum(x_normalized * dout, axis=0)
+
+    # dx_normalized = gamma * dout
+
+
+    # dsample_var = np.sum(-1.0 / 2 * dx_normalized * (x - sample_mean) / (sample_var + eps) ** (3.0 / 2), axis=0)
+    # dsample_mean = np.sum(-1 / np.sqrt(sample_var + eps) * dx_normalized, axis=0) + 1.0 / N * dsample_var * np.sum(
+    #     -2 * (x - sample_mean), axis=0)
+    # dx = 1 / np.sqrt(sample_var + eps) * dx_normalized + dsample_var * 2.0 / N * (
+    #         x - sample_mean) + 1.0 / N * dsample_mean
 
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -750,6 +794,6 @@ def softmax_loss(x, y):
     N = x.shape[0]
     loss = -np.sum(np.log(probs[np.arange(N), y])) / N
     dx = probs.copy()
-    dx[np.arange(N), y] -= 1 # 注意softmax的求导异常简单！
+    dx[np.arange(N), y] -= 1  # 注意softmax的求导异常简单！
     dx /= N
     return loss, dx
