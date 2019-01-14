@@ -249,6 +249,7 @@ class FullyConnectedNet(object):
             self.params[bi] = np.zeros((layer_dim[i]))
 
             if self.use_batchnorm and i != self.num_layers:
+                # layer_dim[i]: 第i个layer的输出的D  (N,D)
                 self.params[gammai] = np.ones(layer_dim[i])
                 self.params[betai] = np.zeros(layer_dim[i])
 
@@ -427,8 +428,13 @@ class FullyConnectedNet(object):
                 dXi, dWi, dbi, dgammai, dbetai = affine_bn_relu_backward(dXi, affine_bn_relu_cache[i])
                 grads['W' + str(i)] = dWi + self.reg * self.params['W' + str(i)]
                 grads['b' + str(i)] = dbi
-                grads['gamma' + str(i)] = dgammai
-                grads['beta' + str(i)] = dbetai
+                grads['W'+str(i)] = dWi
+                # batchnorm_backward: return dx, dgamma, dbeta
+                grads['gamma'+str(i)] = dgammai
+                grads['beta'+str(i)] = dbetai
+
+                # grads['gamma' + str(i)] = dgammai
+                # grads['beta' + str(i)] = dbetai
 
             else:
                 # dXi就是前一个节点的梯度 dout

@@ -33,7 +33,7 @@ def affine_relu_backward(dout, cache):
 
 def affine_bn_relu_forward(x, w, b, gamma, beta, bn_params):
   """
-    forward of affine -> bn -> relu
+    forward of affine -> batch normalize -> relu
   """
 
   affine_out, affine_cache = affine_forward(x, w, b)
@@ -45,7 +45,7 @@ def affine_bn_relu_forward(x, w, b, gamma, beta, bn_params):
 
 def affine_bn_relu_backward(dout, cache):
   """
-    backpropagetion of affine <- bn <- relu
+    backpropagetion of affine <- batch normalize <- relu
   """
 
   affine_cache, bn_cache, relu_cache = cache
