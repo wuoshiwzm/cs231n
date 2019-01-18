@@ -260,8 +260,10 @@ class FullyConnectedNet(object):
         # When using dropout we need to pass a dropout_param dictionary to each
         # dropout layer so that the layer knows the dropout probability and the mode
         # (train / test). You can pass the same dropout_param to each dropout layer.
+        # dropout 参数的初始化
         self.dropout_param = {}
         if self.use_dropout:
+            # p 就是 dropout 的概率p
             self.dropout_param = {'mode': 'train', 'p': dropout}
             if seed is not None:
                 self.dropout_param['seed'] = seed
@@ -342,6 +344,10 @@ class FullyConnectedNet(object):
                 # 更新input_x为下一层的输入
                 input_x, affine_relu_cache[i] = affine_relu_forward(input_x, self.params[Wi], self.params[bi])
 
+            # dropout处理batch normalize 的输出 input_x
+            if self.use_dropout:
+                input_x,dropout_cache[i] = dropout_forward(input_x,self.dropout_param)
+
         #     for last lyer - only affine, no relu
         Wi = 'W' + str(self.num_layers)
         bi = 'b' + str(self.num_layers)
@@ -353,18 +359,13 @@ class FullyConnectedNet(object):
         #     bi = 'b' + str(i)
         #     # batch normalize
         #     if self.use_batchnorm:
-        #
         #         gammai = 'gamma' + str(i)
         #         betai = 'beta' + str(i)
-        #
         #         input_x, affine_bn_relu_cache[i] = affine_bn_relu_forward(input_x, self.params[Wi],
         #                                                                   self.params[bi], self.params[gammai],
         #                                                                   self.params[betai], self.bn_params[i - 1])
-        #
         #     else:
-        #
         #         input_x, affine_relu_cache[i] = affine_relu_forward(input_x, self.params[Wi], self.params[bi])
-        #
         #     if self.use_dropout:
         #         input_x, dropout_cache[i] = dropout_forward(input_x, self.dropout_param)
         #
@@ -413,18 +414,13 @@ class FullyConnectedNet(object):
         grads['W'+str(self.num_layers)] = dWi + self.reg * self.params['W'+str(self.num_layers)]
         grads['W' + str(self.num_layers)] = dWi + self.reg * self.params['W' + str(self.num_layers)]
         grads['b' + str(self.num_layers)] = dbi
-
-
-
         # other layers
         # range(start, stop[, step])
         for i in range(self.num_layers - 1, 0, -1):
-
             if self.use_dropout:
-                dXi = dropout_backward(dXi, dropout_cache[i])
+                dXi = dropout_backward(dXi,dropout_cache[i])
 
             if self.use_batchnorm:
-
                 dXi, dWi, dbi, dgammai, dbetai = affine_bn_relu_backward(dXi, affine_bn_relu_cache[i])
                 grads['W' + str(i)] = dWi + self.reg * self.params['W' + str(i)]
                 grads['b' + str(i)] = dbi
@@ -435,7 +431,6 @@ class FullyConnectedNet(object):
 
                 # grads['gamma' + str(i)] = dgammai
                 # grads['beta' + str(i)] = dbetai
-
             else:
                 # dXi就是前一个节点的梯度 dout
                 # 注意这里是affine_relu, 因为每一个affine都根着一个relu
@@ -443,6 +438,8 @@ class FullyConnectedNet(object):
                 grads['W' + str(i)] = dWi + self.reg * self.params['W' + str(i)]
                 grads['b' + str(i)] = dbi
 
+            # if self.use_dropout:
+            #     dXi = dropout_backward(dXi, dropout_cache[i])
         # add loss with regularization
         # loss是一个数值
         for i in range(1, self.num_layers + 1):

@@ -291,31 +291,28 @@ def batchnorm_backward(dout, cache):
     (x, sample_mean, sample_var, x_normalized, beta, gamma, eps) = cache
     N, D = x.shape
 
-
     dbeta = np.sum(dout, axis=0)
     # beta.shape [D,]
 
-
-    dgamma = np.sum(x_normalized*dout,axis=0)
+    dgamma = np.sum(x_normalized * dout, axis=0)
     # (x_normalized*dout).shape  (x_normalized*dout).shape
     # gamma.shape [D,]
 
-    dx_normalized = dout * gamma # 注意这里不是点乘
+    dx_normalized = dout * gamma  # 注意这里不是点乘
     # x_normalized.shape (N,D)
 
     #  sample_var = np.var(x, axis=0)
     #  sample_var.shape (D,)
     # 对x_normalized 的表达式 求 sample_var 的导数
-    dsample_var =np.sum(dx_normalized * (-1.0/2)*(x-sample_mean) * (sample_var+eps)**(-3.0/2), axis=0)
+    dsample_var = np.sum(dx_normalized * (-1.0 / 2) * (x - sample_mean) * (sample_var + eps) ** (-3.0 / 2), axis=0)
 
     #  同上，x_normalized 的表达式 求 sample_mean 的导数, 还有dsample_var 求 sample_mean求导
-    dsample_mean = np.sum(dx_normalized * (-1.0) /np.sqrt(sample_var+eps),axis=0) + np.sum(dsample_var *(-2.0/N) * (x-sample_mean),axis=0)
+    dsample_mean = np.sum(dx_normalized * (-1.0) / np.sqrt(sample_var + eps), axis=0) + np.sum(
+        dsample_var * (-2.0 / N) * (x - sample_mean), axis=0)
 
-    #对dx_normalized求导 + 对dsample_var求导 +对dsample_mean求导
-    dx = dx_normalized * 1.0/np.sqrt(sample_var+eps) + dsample_var*(2.0/N)*(x-sample_mean) + dsample_mean * 1.0/N
-
-
-
+    # 对dx_normalized求导 + 对dsample_var求导 +对dsample_mean求导
+    dx = dx_normalized * 1.0 / np.sqrt(sample_var + eps) + dsample_var * (2.0 / N) * (
+            x - sample_mean) + dsample_mean * 1.0 / N
 
     # (x, sample_mean, sample_var, x_normalized, beta, gamma, eps) = cache
     # N = x.shape[0]
@@ -360,12 +357,12 @@ def batchnorm_backward_alt(dout, cache):
     #############################################################################
     (x, sample_mean, sample_var, x_normalized, beta, gamma, eps) = cache
     N = x.shape[0]
-    dbeta = np.sum(dout, axis=0) # 没变
-    dgamma = np.sum(x_normalized * dout, axis=0) # 没变
-    dx_normalized = gamma * dout # 没变
-    dsample_var = np.sum(-1.0 / 2 * dx_normalized * (x - sample_mean) / (sample_var + eps) ** (3.0 / 2), axis=0) # 没变
+    dbeta = np.sum(dout, axis=0)  # 没变
+    dgamma = np.sum(x_normalized * dout, axis=0)  # 没变
+    dx_normalized = gamma * dout  # 没变
+    dsample_var = np.sum(-1.0 / 2 * dx_normalized * (x - sample_mean) / (sample_var + eps) ** (3.0 / 2), axis=0)  # 没变
     dsample_mean = np.sum(-1 / np.sqrt(sample_var + eps) * dx_normalized, axis=0) + 1.0 / N * dsample_var * np.sum(
-        -2 * (x - sample_mean), axis=0) # 没变
+        -2 * (x - sample_mean), axis=0)  # 没变
     dx = 1 / np.sqrt(sample_var + eps) * dx_normalized + dsample_var * 2.0 / N * (
             x - sample_mean) + 1.0 / N * dsample_mean
     #############################################################################
@@ -406,8 +403,15 @@ def dropout_forward(x, dropout_param):
         # TODO: Implement the training phase forward pass for inverted dropout.   #
         # Store the dropout mask in the mask variable.                            #
         ###########################################################################
-        mask = (np.random.rand(*x.shape)) < (1 - p)
+        # print x.shape (500,500)
+        # 列表前面加星号作用是将列表解开成两个独立的参数，传入函数
+        # 字典前面加两个星号，是将字典解开成独立的元素作为形参
+
+        mask = (np.random.rand(*x.shape)) < p
         out = mask * x
+
+        # mask = (np.random.rand(*x.shape)) < (1 - p)
+        # out = mask * x
         ###########################################################################
         #                            END OF YOUR CODE                             #
         ###########################################################################
@@ -415,7 +419,10 @@ def dropout_forward(x, dropout_param):
         ###########################################################################
         # TODO: Implement the test phase forward pass for inverted dropout.       #
         ###########################################################################
-        out = x * (1 - p)
+        # test time 计算平均值
+        out = x / p
+
+        # out = x * (1 - p)
         ###########################################################################
         #                            END OF YOUR CODE                             #
         ###########################################################################
@@ -435,19 +442,20 @@ def dropout_backward(dout, cache):
     - cache: (dropout_param, mask) from dropout_forward.
     """
     dropout_param, mask = cache
-    mode = dropout_param['mode']
+    p, mode = 1-dropout_param['p'], dropout_param['mode']
 
     dx = None
     if mode == 'train':
         ###########################################################################
         # TODO: Implement the training phase backward pass for inverted dropout.  #
         ###########################################################################
-        dx = mask * dout
+        dx = dout * mask
+        # dx = mask * dout
         ###########################################################################
         #                            END OF YOUR CODE                             #
         ###########################################################################
     elif mode == 'test':
-        dx = dout * p
+        dx = dout
     return dx
 
 
