@@ -442,7 +442,7 @@ def dropout_backward(dout, cache):
     - cache: (dropout_param, mask) from dropout_forward.
     """
     dropout_param, mask = cache
-    p, mode = 1-dropout_param['p'], dropout_param['mode']
+    p, mode = 1 - dropout_param['p'], dropout_param['mode']
 
     dx = None
     if mode == 'train':
@@ -459,6 +459,7 @@ def dropout_backward(dout, cache):
     return dx
 
 
+# ***卷积层 前向*** 核心
 def conv_forward_naive(x, w, b, conv_param):
     """
     A naive implementation of the forward pass for a convolutional layer.
@@ -468,18 +469,20 @@ def conv_forward_naive(x, w, b, conv_param):
     all C channels and has height HH and width HH.
 
     Input:
-    - x: Input data of shape (N, C, H, W)
-    - w: Filter weights of shape (F, C, HH, WW)
-    - b: Biases, of shape (F,)
+    - x: Input data of shape (N, C, H, W)  H:height W:width  C:label
+    - w: Filter weights of shape (F, C, HH, WW) F: filter的层数 C:label,这里和input保持一致
+                                                HH:filter的height WW:filter的width
+    - b: Biases, of shape (F,) 卷积filter运算后加上的噪声
     - conv_param: A dictionary with the following keys:
       - 'stride': The number of pixels between adjacent receptive fields in the
-        horizontal and vertical directions.
+        horizontal and vertical directions. 步长
       - 'pad': The number of pixels that will be used to zero-pad the input.
 
     Returns a tuple of:
     - out: Output data, of shape (N, F, H', W') where H' and W' are given by
       H' = 1 + (H + 2 * pad - HH) / stride
       W' = 1 + (W + 2 * pad - WW) / stride
+      输出的卷积层的shape
     - cache: (x, w, b, conv_param)
     """
     out = None
@@ -488,55 +491,138 @@ def conv_forward_naive(x, w, b, conv_param):
     # TODO: Implement the convolutional forward pass.                           #
     # Hint: you can use the function np.pad for padding.                        #
     #############################################################################
-
-    def conv(X, w, b, conv_param):
+    # 内部函数 这里只对1条input数据计算卷积运算
+    def conv(X, w, b, conv_params):
         """
           X: shape (C, H, W)
-          W: shape (C, HH, WW)
+          W: shape (C, HH, WW)  filter的尺寸
           b: float
+
+          X (N,H,W,C)-> Conv
         """
         C, H, W = X.shape
         C, HH, WW = w.shape
-        pad = conv_param['pad']
-        stride = conv_param['stride']
 
-        # padding
-        npad = ((0, 0), (pad, pad), (pad, pad))
-        X = np.pad(X, pad_width=npad, mode='constant', constant_values=0)
+        pad = conv_params['pad']
+        stride = conv_params['stride']
 
-        # conv
-        H_o = 1 + (H + 2 * pad - HH) / stride
-        W_o = 1 + (W + 2 * pad - WW) / stride
-        Y = np.zeros((H_o, W_o))
-        for i in range(H_o):
-            for j in range(W_o):
+        """ 
+        计算filter层在H和W上有几维（即H方向有能过滤出来几个h'，W向方向能过滤出来几个w',
+        那么h'*w'就是一层郑积的维度数，再乘以filter的个数就是卷积层最终输出的output）
+        h' = (H-HH)/stride + 1
+        w' = (W-WW)/stride + 1
+        """
 
-                y_sum = 0
-                for k in range(HH):
-                    for m in range(WW):
-                        y_sum += np.sum(X[:, i * stride - pad + k + 1, j * stride - pad + m + 1] * w[:, k, m])
+        # 这里padding已经给出，不用求:
 
-                Y[i, j] = y_sum + b
+        # 扩充x,然后赋值 上下左右都加上pad
+        X = np.pad(X, [(0,0),(pad,pad),(pad,pad)],mode='constant', constant_values=0)
+        # X.shape (3L, 6L, 6L)
 
-        return Y
+        # 现在可以计算卷积输出矩阵（1层）
+        Hout = 1 + (H + 2 * pad - HH) / stride # filter输出的height filter本身height HH  H' = 1 + (H + 2 * pad - HH) / stride
+        Wout = 1 + (W + 2 * pad - WW) / stride # filter输出的width filter本身width WW
+
+        conv_matrix = np.zeros([Hout,Wout], dtype=np.float64)  # (2,2)
+
+        for height_num in range(Hout):
+            for width_num in range(Wout):
+                # filter扫描的区域中的每一个元素，计算他们乘以w矩阵的值再求和，也就是按计算filter输出的每一个位置上的元素的值
+                tem_sum = 0
+                # 计算在输出height_num,width_num位置上
+                conv_matrix[height_num,width_num]=np.sum(X[:,height_num*stride:height_num*stride+HH,width_num*stride:width_num*stride+WW]*w)+b
+                # for i in range(HH):
+                #     for j in range(WW):
+                #         tem_sum += np.sum(X[:,height_num*stride+i,width_num*stride+j]*w[:,i,j])
+                # conv_matrix[height_num,width_num] = tem_sum+b
+
+        return conv_matrix
+
+        #         y_sum = 0
+        #         for k in range(HH):
+        #             for m in range(WW):
+        #                 y_sum += np.sum(X[:, height_num * stride - pad + k + 1, width_num * stride - pad + m + 1] * w[:, k, m])
+        #         # print 'Y s shape: ',Y.shape
+        #                 conv_matrix[height_num, width_num] = y_sum + b
+        #
+        #
+        #             # print X[:,height_num*stride:height_num*stride+HH,width_num*stride:width_num*stride+WW].shape
+        #             # #print 'hh:',height_num,'ww',width_num,'label:',label
+        #             # conv_matrix[height_num,width_num] = np.sum(X[:,height_num*stride:height_num*stride+HH,width_num*stride:width_num*stride+WW])
+        #             # # print conv_matrix.shape
+        #             # conv_matrix[height_num,width_num] += b
+        # return conv_matrix
+
+
+
+
+    # def conv1(X, w, b, conv_param):
+    #     """
+    #       X: shape (C, H, W)
+    #       W: shape (C, HH, WW)
+    #       b: float
+    #     """
+    #     C, H, W = X.shape
+    #     C, HH, WW = w.shape
+    #     pad = conv_param['pad']
+    #     stride = conv_param['stride']
+    #
+    #     # padding
+    #     npad = ((0, 0), (pad, pad), (pad, pad))
+    #     X = np.pad(X, pad_width=npad, mode='constant', constant_values=0)
+    #
+    #     # conv
+    #     H_o = 1 + (H + 2 * pad - HH) / stride
+    #     W_o = 1 + (W + 2 * pad - WW) / stride
+    #     Y = np.zeros((H_o, W_o))
+    #     for i in range(H_o):
+    #         for j in range(W_o):
+    #
+    #             y_sum = 0
+    #             for k in range(HH):
+    #                 for m in range(WW):
+    #                     y_sum += np.sum(X[:, i * stride - pad + k + 1, j * stride - pad + m + 1] * w[:, k, m])
+    #             # print 'Y s shape: ',Y.shape
+    #             Y[i, j] = y_sum + b
+    #     return Y
 
     # get params
+
+    # 多个输入 多层卷积
     N, C, H, W = x.shape
     F, C, HH, WW = w.shape
 
-    # conv for evry image
+    # 对每一个输入（每一张图片计算卷积）
+
     out = []
-    for i in range(N):
+    for nn in range(N):
+        conv_layers = [] #一个conv_layers 对应一条输入（一个图片）
+        for ff in range(F):
+            # 一个卷积层
+            one_layer = conv(x[nn],w[ff],b[ff],conv_param)
+            conv_layers.append(one_layer)
+        # conv_layers: (3,2,2)
+        out.append(conv_layers)
 
-        # conv for evey channel
-        channel_list = []
-        for j in range(F):
-            y = conv(x[i], w[j], b[j], conv_param)
-            channel_list.append(y)
-
-        out.append(channel_list)
-
+    # out:(2,3,2,2)
     out = np.array(out)
+
+
+    # print out.shape
+
+
+    # # conv for evry image
+    # out = []
+    # for i in range(N):
+    #
+    #     # conv for evey channel
+    #     channel_list = []
+    #     for j in range(F):
+    #         y = conv(x[i], w[j], b[j], conv_param)
+    #         channel_list.append(y)
+    #     out.append(channel_list)
+    #
+    # out = np.array(out)
 
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -545,6 +631,7 @@ def conv_forward_naive(x, w, b, conv_param):
     return out, cache
 
 
+# ***卷积层 后向
 def conv_backward_naive(dout, cache):
     """
     A naive implementation of the backward pass for a convolutional layer.
@@ -562,6 +649,26 @@ def conv_backward_naive(dout, cache):
     #############################################################################
     # TODO: Implement the convolutional backward pass.                          #
     #############################################################################
+    x,w,b,conv_param = cache
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+    N,C,H,W = x.shape
+    F,_,HH,WW = w.shape
+    _,_,H_out,W_out = dout.shape
+
+    # padding 求导
+
+
+
+
+
+
+
+
+
+
+
+
     x, w, b, conv_param = cache
     stride = conv_param['stride']
     pad = conv_param['pad']
