@@ -654,50 +654,78 @@ def conv_backward_naive(dout, cache):
     pad = conv_param['pad']
     N,C,H,W = x.shape
     F,_,HH,WW = w.shape
-    _,_,H_out,W_out = dout.shape
+    _,_,H_out,W_out = dout.shape   #dout的维度与out的维度是一样的 (N, F, H', W')  N:输入的条数  F:卷积层的层数
+    # out: Output data, of shape (N, F, H', W') where H' and W' are given by
+    #       H' = 1 + (H + 2 * pad - HH) / stride
+    #       W' = 1 + (W + 2 * pad - WW) / stride
 
-    # padding 求导
+    # padding 输入的padding X:[N,C,H,W] ,其中只对H,W进行padding
+    x_pad = np.pad(x,pad_width=((0,0),(0,0),(pad,pad),(pad,pad)),mode='constant',constant_values=0)
 
-
-
-
-
-
-
-
-
-
-
-
-    x, w, b, conv_param = cache
-    stride = conv_param['stride']
-    pad = conv_param['pad']
-    N, C, H, W = x.shape
-    F, _, HH, WW = w.shape
-    _, _, H_o, W_o = dout.shape
-
-    # pading
-    npad = ((0, 0), (0, 0), (pad, pad), (pad, pad))
-    x_pad = np.pad(x, pad_width=npad, mode='constant', constant_values=0)
-
+    # 对b求导 b的维度和卷积层的层数一致 ,而b是常数，所以梯度是dout * 1
     db = np.zeros((F))
-    for n in range(N):
-        for i in range(H_o):
-            for j in range(W_o):
-                db = db + dout[n, :, i, j]
 
-    dw = np.zeros(w.shape)
+    for f in range(F):
+        db[f] += np.sum(dout[:,f,:,:]) #对每一层对应的b,求这一层对应的dout的和
+
+
+
+    # 对w求导(F,C,HH,WW) out = X * w
+    dw = np.zeros(w.shape) # 先赋初始值
+
+    # 对x求导,先要对x_pad求导 x -> x_pad -> dx_pad -> dx
     dx_pad = np.zeros(x_pad.shape)
 
+    # out = x_pad * w 对w求导就是x_pad, 对x_pad求导就是w
     for n in range(N):
         for f in range(F):
-            for i in range(H_o):
-                for j in range(W_o):
-                    current_x_matrix = x_pad[n, :, i * stride: i * stride + HH, j * stride: j * stride + WW]
-                    dw[f] = dw[f] + dout[n, f, i, j] * current_x_matrix
-                    dx_pad[n, :, i * stride: i * stride + HH, j * stride: j * stride + WW] += w[f] * dout[n, f, i, j]
+            for i in range(H_out):
+                for j in range(W_out):
+                    # [i,j]位置的元素代表对应位置上filter过滤的运算结果
+                    # x被filter扫描的那一块
+                    x_filter = x_pad[n,:,stride*i:stride*i+HH,stride*j:stride*j+WW]
+                    # w:(F,C,HH,WW) out:(N,F,H',W') out = w*current_x_matrix
+                    dw[f] += dout[n,f,i,j]*x_filter
+                    dx_pad[n,:,stride*i:stride*i+HH,stride*j:stride*j+WW] += w[f]*dout[n,f,i,j]
 
-    dx = dx_pad[:, :, 1: H + 1, 1: W + 1]
+    # N, C, H, W = x.shape
+    # F, C, HH, WW = w.shape
+
+
+    dx = dx_pad[:, :, pad:H + pad, pad:W + pad]  # 这里的pad设为了1
+
+
+    # x, w, b, conv_param = cache
+    # stride = conv_param['stride']
+    # pad = conv_param['pad']
+    # N, C, H, W = x.shape
+    # F, _, HH, WW = w.shape
+    # _, _, H_o, W_o = dout.shape
+    #
+    # # pading
+    # npad = ((0, 0), (0, 0), (pad, pad), (pad, pad))
+    # x_pad = np.pad(x, pad_width=npad, mode='constant', constant_values=0)
+    #
+    # db = np.zeros((F))
+    # for n in range(N):
+    #     for i in range(H_o):
+    #         for j in range(W_o):
+    #             db = db + dout[n, :, i, j]
+    #
+    #
+    # dw = np.zeros(w.shape)
+    # dx_pad = np.zeros(x_pad.shape)
+    #
+    # for n in range(N):
+    #     for f in range(F):
+    #         for i in range(H_o):
+    #             for j in range(W_o):
+    #                 current_x_matrix = x_pad[n, :, i * stride: i * stride + HH, j * stride: j * stride + WW]
+    #                 dw[f] = dw[f] + dout[n, f, i, j] * current_x_matrix
+    #                 dx_pad[n, :, i * stride: i * stride + HH, j * stride: j * stride + WW] += w[f] * dout[n, f, i, j]
+    #
+    # dx = dx_pad[:, :, 1: H + 1, 1: W + 1]
+
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -720,28 +748,45 @@ def max_pool_forward_naive(x, pool_param):
     - cache: (x, pool_param)
     """
     out = None
+
     #############################################################################
     # TODO: Implement the max pooling forward pass                              #
     #############################################################################
-    N, C, H, W = x.shape
+    # Pooling layer:makes the representations smaller and more manageable
+    # MAX POOLING:比如输入 4x4, pooling的filter2x2,stride 2,有点类似卷积层的filter扫描阶段，
+    # 每一块2x2区域取最大的一个元素，最终输出为2x2的pooling层
+    N,C,H,W = x.shape
     pool_height = pool_param['pool_height']
     pool_width = pool_param['pool_width']
     stride = pool_param['stride']
-    H_out = 1 + (H - pool_height) / stride
-    W_out = 1 + (W - pool_width) / stride
-    out = np.zeros((N, C, H_out, W_out))
-
+    pool_out = np.zeros((N,C,1 + (H - pool_height) / stride,1 + (W - pool_width) / stride))
     for n in range(N):
-        for c in range(C):
-            for h in range(H_out):
-                for w in range(W_out):
-                    out[n, c, h, w] = np.max(
-                        x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width])
+        for i in range(1+(H - pool_height)/stride):
+            for j in range(1+ (W - pool_width)/stride):
+                for c in range(C):
+                    pool_out[n,c,i,j] = np.max(x[n,c,i*stride:i*stride+pool_height,j*stride:j*stride+pool_width])
+
+
+
+    # N, C, H, W = x.shape
+    # pool_height = pool_param['pool_height']
+    # pool_width = pool_param['pool_width']
+    # stride = pool_param['stride']
+    # H_out = 1 + (H - pool_height) / stride
+    # W_out = 1 + (W - pool_width) / stride
+    # out = np.zeros((N, C, H_out, W_out))
+    #
+    # for n in range(N):
+    #     for c in range(C):
+    #         for h in range(H_out):
+    #             for w in range(W_out):
+    #                 out[n, c, h, w] = np.max(
+    #                     x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width])
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
     cache = (x, pool_param)
-    return out, cache
+    return pool_out, cache
 
 
 def max_pool_backward_naive(dout, cache):
@@ -767,17 +812,38 @@ def max_pool_backward_naive(dout, cache):
 
     dx = np.zeros(x.shape)
 
-    # The instruction says ''You don't need to worry about computational efficiency."
-    # So I did the following...
     for n in range(N):
         for c in range(C):
-            for h in range(H_out):
-                for w in range(W_out):
-                    current_matrix = x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width]
-                    current_max = np.max(current_matrix)
-                    for (i, j) in [(i, j) for i in range(pool_height) for j in range(pool_width)]:
-                        if current_matrix[i, j] == current_max:
-                            dx[n, c, h * stride + i, w * stride + j] += dout[n, c, h, w]
+            for i in range(H_out):
+                for j in range(W_out):
+                    filter_matrix = x[n,c,i*stride:i*stride+pool_height,j*stride:j*stride+pool_width]
+                    filter_max = np.max(filter_matrix)
+                    for (ii,jj) in [(ii,jj) for ii in range(pool_height) for jj in range(pool_width)]:
+                        if x[n,c,ii+i*stride,jj+j*stride] == filter_max:#只有最大值对应的x的导数为1，乘以对应dout就是dout对应位置上的值，其他为0
+                            # 那么最大值位置上的导数就是dout对应的那个输出
+                            # 这里用+=是因为有可能有一个位置会出现在多个filter里的情况
+                            dx[n,c,i*stride+ii,j*stride+jj] += dout[n,c,i,j]
+
+
+    # x, pool_param = cache
+    # pool_height = pool_param['pool_height']
+    # pool_width = pool_param['pool_width']
+    # stride = pool_param['stride']
+    # N, C, H_out, W_out = dout.shape
+    #
+    # dx = np.zeros(x.shape)
+    #
+    # # The instruction says ''You don't need to worry about computational efficiency."
+    # # So I did the following...
+    # for n in range(N):
+    #     for c in range(C):
+    #         for h in range(H_out):
+    #             for w in range(W_out):
+    #                 current_matrix = x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width]
+    #                 current_max = np.max(current_matrix)
+    #                 for (i, j) in [(i, j) for i in range(pool_height) for j in range(pool_width)]:
+    #                     if current_matrix[i, j] == current_max:
+    #                         dx[n, c, h * stride + i, w * stride + j] += dout[n, c, h, w]
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
