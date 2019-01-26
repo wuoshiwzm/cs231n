@@ -107,11 +107,8 @@ def relu_forward(x):
     #############################################################################
     # TODO: Implement the ReLU forward pass.                                    #
     #############################################################################
-
     out = np.maximum(0, x)
-
     # out = np.maximum(0, x)
-
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -212,9 +209,13 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #############################################################################
         sample_mean = np.mean(x, axis=0)  # 对所有样本计算均值，只算一次,针对每个维度求计算
         sample_var = np.var(x, axis=0)
+        # print 'sample_mean:',sample_mean
+        # print 'sample_var:',sample_var
 
         x_normalized = (x - sample_mean) / np.sqrt(sample_var + eps)
         out = gamma * x_normalized + beta
+        print 'x_normalized_sum:',np.sum(x_normalized)
+        print x_normalized.shape
 
         cache = (x, sample_mean, sample_var, x_normalized, beta, gamma, eps)
 
@@ -881,11 +882,24 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # version of batch normalization defined above. Your implementation should  #
     # be very short; ours is less than five lines.                              #
     #############################################################################
+    # 把H,N,W都算近去求他们的mean, Var
+    # 注意transpose 传的参数是transpose后对应的维度值
+    # 传的维度不同，批量归一化的结果也不同
+    N,C,H,W = x.shape
+    input_x = x.transpose(0,2,3,1).reshape((N*H*W,C))
+    norm_out,cache = batchnorm_forward(input_x, gamma, beta, bn_param)
+    out1 = norm_out.reshape(N,H,W,C).transpose(0,3,1,2)
+    print 'OUT1:',np.sum(out1)
 
-    N, C, H, W = x.shape
-    temp_output, cache = batchnorm_forward(x.transpose(0, 3, 2, 1).reshape((N * H * W, C)), gamma, beta, bn_param)
+
+    # N, C, H, W = x.shape
+    temp_output, cache = batchnorm_forward(x.transpose(0, 3, 2, 1).reshape((N * W * H, C)), gamma, beta, bn_param)
     out = temp_output.reshape(N, W, H, C).transpose(0, 3, 2, 1)
-
+    #
+    # print norm_out - temp_output
+    print 'OUT:',np.sum(out)
+    # print 'out1-out:'
+    # print out1 - out
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################

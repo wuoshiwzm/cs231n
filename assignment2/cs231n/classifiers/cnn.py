@@ -1,3 +1,4 @@
+# coding=UTF-8
 import numpy as np
 
 from cs231n.layers import *
@@ -32,6 +33,8 @@ class ThreeLayerConvNet(object):
       of weights.
     - reg: Scalar giving L2 regularization strength
     - dtype: numpy datatype to use for computation.
+
+    conv-> affine_hidden -> out
     """
     self.params = {}
     self.reg = reg
@@ -50,29 +53,70 @@ class ThreeLayerConvNet(object):
     # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
     # of the output affine layer.                                              #
     ############################################################################
-    C, H, W = input_dim
-
-    # params for conv_pool layer
-    self.params['W1'] = weight_scale * np.random.randn(num_filters, C, filter_size, filter_size)
+    # 初始化权重W1,W2,W3, 和bias : b1,b2,b3
+    C,H,W = input_dim
+    # W:F,C,H_filter,W_filter
+    # b:F,
+    self.params['W1'] = weight_scale * np.random.randn(num_filters,C,filter_size,filter_size)
     self.params['b1'] = np.zeros((num_filters,))
     self.params['conv_param'] = conv_param
     self.params['pool_param'] = pool_param
 
-    H_conv_o = int(1 + (H + 2 * conv_param['pad'] - filter_size) / conv_param['stride'])
-    W_conv_o = int(1 + (W + 2 * conv_param['pad'] - filter_size) / conv_param['stride'])
-    H_pool_o = int(1 + (H_conv_o - pool_param['pool_height']) / pool_param['stride'])
-    W_pool_o = int(1 + (W_conv_o - pool_param['pool_width']) / pool_param['stride'])
+    # 每个卷积层的输出shape
+    pad = conv_param['pad']
+    conv_stride = conv_param['stride']
+    conv_H = int(1 + (H+2*pad - filter_size)/conv_stride)
+    conv_W = int(1+(W+2*pad-filter_size)/conv_stride)
 
-    # params for the second layer - affine
-    num_input = num_filters * H_pool_o * W_pool_o
-    self.params['W2'] = weight_scale * np.random.randn(num_input, hidden_dim)
+    # 池化层的输出shape(此处用max_pool)
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    pool_stride = pool_param['stride']
+    pool_H = int(1 + (conv_H - pool_height) / pool_stride)
+    pool_W = int(1 + (conv_W - pool_width) / pool_stride)
+
+    # 每一个卷积层经过池化输出 pool_H*pool_W，一共有num_filters个卷积核，
+    # 所以最终输出给下层的数据维度为[num_filters,pool_H,pool_W]
+    # 这里直接转化为1维,最终输出为hidden_dim:隐藏层中的神经元个数
+    num_input = num_filters * pool_H * pool_W
+    self.params['W2'] = weight_scale * np.random.randn(num_input,hidden_dim)
     self.params['b2'] = np.zeros((hidden_dim,))
 
-    # params for the third layer - affine
+
+
+    # 第三层 最终把隐层中的数据输出为分类
     num_input = hidden_dim
-    num_output = num_classes
-    self.params['W3'] = weight_scale * np.random.randn(num_input, num_output)
-    self.params['b3'] = np.zeros((num_output,))
+    num_out = num_classes
+    self.params['W3'] = weight_scale * np.random.randn(num_input,num_out)
+    self.params['b3'] = np.zeros((num_out,))
+
+
+
+
+
+    # C, H, W = input_dim
+    #
+    # # params for conv_pool layer
+    # self.params['W1'] = weight_scale * np.random.randn(num_filters, C, filter_size, filter_size)
+    # self.params['b1'] = np.zeros((num_filters,))
+    # self.params['conv_param'] = conv_param
+    # self.params['pool_param'] = pool_param
+    #
+    # H_conv_o = int(1 + (H + 2 * conv_param['pad'] - filter_size) / conv_param['stride'])
+    # W_conv_o = int(1 + (W + 2 * conv_param['pad'] - filter_size) / conv_param['stride'])
+    # H_pool_o = int(1 + (H_conv_o - pool_param['pool_height']) / pool_param['stride'])
+    # W_pool_o = int(1 + (W_conv_o - pool_param['pool_width']) / pool_param['stride'])
+    #
+    # # params for the second layer - affine
+    # num_input = num_filters * H_pool_o * W_pool_o
+    # self.params['W2'] = weight_scale * np.random.randn(num_input, hidden_dim)
+    # self.params['b2'] = np.zeros((hidden_dim,))
+    #
+    # # params for the third layer - affine
+    # num_input = hidden_dim
+    # num_output = num_classes
+    # self.params['W3'] = weight_scale * np.random.randn(num_input, num_output)
+    # self.params['b3'] = np.zeros((num_output,))
 
     ############################################################################
     #                             END OF YOUR CODE                             #
@@ -106,10 +150,17 @@ class ThreeLayerConvNet(object):
     # computing the class scores for X and storing them in the scores          #
     # variable.                                                                #
     ############################################################################
-    Y_1, cache_1 = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
-    Y_2, cache_2 = affine_relu_forward(Y_1, W2, b2)
-    Y_3, cache_3 = affine_forward(Y_2, W3, b3)
-    scores = Y_3
+
+    conv_out,conv_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+    affine_out,affine_cache = affine_relu_forward(conv_out,W2,b2)
+    out,cache = affine_forward(affine_out,W3,b3)
+    scores = out
+
+
+    # Y_1, cache_1 = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+    # Y_2, cache_2 = affine_relu_forward(Y_1, W2, b2)
+    # Y_3, cache_3 = affine_forward(Y_2, W3, b3)
+    # scores = Y_3
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -125,14 +176,18 @@ class ThreeLayerConvNet(object):
     # for self.params[k]. Don't forget to add L2 regularization!               #
     ############################################################################
 
-    loss, dy = softmax_loss(scores, y)
-    loss += 0.5 * self.reg * (np.sum(W1 * W1) + np.sum(W2 * W2) + np.sum(W3 * W3))
+    # def softmax_loss(x, y):  return loss, dx
+    #
+    loss,dscores = softmax_loss(scores,y)
+    loss += 0.5 * self.reg *(np.sum(W1*W1) +np.sum(W2*W2)+np.sum(W3*W3))
 
-    dx3, dW3, db3 = affine_backward(dy, cache_3)
-    dW3 += self.reg * W3
-    dx2, dW2, db2 = affine_relu_backward(dx3, cache_2)
+    dx3,dW3,db3 = affine_backward(dscores,cache)
+    dW3 += self.reg*W3
+
+    dx2,dW2,db2 = affine_relu_backward(dx3,affine_cache)
     dW2 += self.reg * W2
-    dx1, dW1, db1 = conv_relu_pool_backward(dx2, cache_1)
+
+    dx1,dW1,db1 = conv_relu_pool_backward(dx2,conv_cache)
     dW1 += self.reg * W1
 
     grads['W1'] = dW1
@@ -141,6 +196,26 @@ class ThreeLayerConvNet(object):
     grads['b1'] = db1
     grads['b2'] = db2
     grads['b3'] = db3
+
+
+
+
+    # loss, dy = softmax_loss(scores, y)
+    # loss += 0.5 * self.reg * (np.sum(W1 * W1) + np.sum(W2 * W2) + np.sum(W3 * W3))
+    #
+    # dx3, dW3, db3 = affine_backward(dy, cache_3)
+    # dW3 += self.reg * W3
+    # dx2, dW2, db2 = affine_relu_backward(dx3, cache_2)
+    # dW2 += self.reg * W2
+    # dx1, dW1, db1 = conv_relu_pool_backward(dx2, cache_1)
+    # dW1 += self.reg * W1
+    #
+    # grads['W1'] = dW1
+    # grads['W2'] = dW2
+    # grads['W3'] = dW3
+    # grads['b1'] = db1
+    # grads['b2'] = db2
+    # grads['b3'] = db3
 
     ############################################################################
     #                             END OF YOUR CODE                             #

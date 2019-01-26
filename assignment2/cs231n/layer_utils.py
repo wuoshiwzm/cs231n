@@ -68,20 +68,39 @@ def conv_relu_forward(x, w, b, conv_param):
   - out: Output from the ReLU
   - cache: Object to give to the backward pass
   """
-  a, conv_cache = conv_forward_fast(x, w, b, conv_param)
-  out, relu_cache = relu_forward(a)
-  cache = (conv_cache, relu_cache)
-  return out, cache
+  #   out = np.ascontiguousarray(out)
+  #   cache = (x, w, b, conv_param, x_cols)
+  #   return out, cache
+
+  conv_out,conv_cache = conv_forward_fast(x, w, b, conv_param)
+  relu_out,relu_cache = relu_forward(conv_out)
+  cache = (conv_cache,relu_cache)
+
+  return relu_out,cache
+
+
+
+
+  # a, conv_cache = conv_forward_fast(x, w, b, conv_param)
+  # out, relu_cache = relu_forward(a)
+  # cache = (conv_cache, relu_cache)
+  # return out, cache
 
 
 def conv_relu_backward(dout, cache):
   """
   Backward pass for the conv-relu convenience layer.
   """
-  conv_cache, relu_cache = cache
-  da = relu_backward(dout, relu_cache)
-  dx, dw, db = conv_backward_fast(da, conv_cache)
-  return dx, dw, db
+  conv_cache,relu_cache = cache
+  drelu_x = relu_backward(dout, relu_cache)  #drelu/dx
+  dx,dw,db = conv_backward_fast(drelu_x,conv_cache)
+
+  return dx,dw,db
+
+  # conv_cache, relu_cache = cache
+  # da = relu_backward(dout, relu_cache)
+  # dx, dw, db = conv_backward_fast(da, conv_cache)
+  # return dx, dw, db
 
 
 def conv_relu_pool_forward(x, w, b, conv_param, pool_param):
