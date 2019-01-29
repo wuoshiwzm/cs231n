@@ -247,6 +247,7 @@ class Solver(object):
 
       # Maybe print training loss
       if self.verbose and t % self.print_every == 0:
+        # print 'gamma: ',np.sum(self.params['gamma']), np.sum(self.params['beta'])
         print '(Iteration %d / %d) loss: %f' % (
                t + 1, num_iterations, self.loss_history[-1])
 

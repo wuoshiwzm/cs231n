@@ -18,6 +18,7 @@ class ThreeLayerConvNet(object):
   """
 
   def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=7,
+               num_filters_2=32,filter_size_2=7,
                hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
                dtype=np.float32):
     """
@@ -41,7 +42,9 @@ class ThreeLayerConvNet(object):
     self.dtype = dtype
 
     conv_param = {'stride': 1, 'pad': (filter_size - 1) / 2}
+    conv_param_2 = {'stride': 1, 'pad': (filter_size - 1) / 2}
     pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
+    dropout_param = {'p':0.5,'mode':'train'}
     
     ############################################################################
     # TODO: Initialize weights and biases for the three-layer convolutional    #
@@ -60,7 +63,19 @@ class ThreeLayerConvNet(object):
     self.params['W1'] = weight_scale * np.random.randn(num_filters,C,filter_size,filter_size)
     self.params['b1'] = np.zeros((num_filters,))
     self.params['conv_param'] = conv_param
+    self.params['conv_param_2'] = conv_param_2
     self.params['pool_param'] = pool_param
+    self.params['dropout_param'] = dropout_param
+
+    # gamma beta initial
+    self.params['gamma'], self.params['beta'] = np.ones(num_filters), np.zeros(num_filters)
+
+    self.params['bn_param1'] = {
+      'mode': 'train'
+    }
+    self.params['bn_param2'] = {
+      'mode': 'train'
+    }
 
     # 每个卷积层的输出shape
     pad = conv_param['pad']
@@ -75,23 +90,37 @@ class ThreeLayerConvNet(object):
     pool_H = int(1 + (conv_H - pool_height) / pool_stride)
     pool_W = int(1 + (conv_W - pool_width) / pool_stride)
 
+
+    # 这里再加一个conv层
+    # 上一层到这里的输出为 conv_out: (batch_size,num_filters,pool_H,pool_W)
+    # conv_forward_strides(x, w, b, conv_param)
+
+    # self.params['W1'] = weight_scale * np.random.randn(num_filters,C,filter_size,filter_size)
+    self.params['W_2'] = weight_scale * np.random.randn(num_filters_2, num_filters, filter_size_2, filter_size_2)
+    self.params['b_2'] = np.zeros((num_filters_2,))
+    pad_2 = conv_param_2['pad']
+    conv_stride_2 = conv_param_2['stride']
+
+    conv_H_2 = int(1 + (pool_H+2*pad_2 - filter_size_2)/conv_stride_2)
+    conv_W_2 = int(1 + (pool_W+2*pad_2 - filter_size_2)/conv_stride_2)
+
+
+
     # 每一个卷积层经过池化输出 pool_H*pool_W，一共有num_filters个卷积核，
     # 所以最终输出给下层的数据维度为[num_filters,pool_H,pool_W]
     # 这里直接转化为1维,最终输出为hidden_dim:隐藏层中的神经元个数
-    num_input = num_filters * pool_H * pool_W
+    # num_input = num_filters * pool_H * pool_W
+    num_input = num_filters_2 * conv_H_2 * conv_W_2 #这里是更新为新加卷积层的输出
     self.params['W2'] = weight_scale * np.random.randn(num_input,hidden_dim)
     self.params['b2'] = np.zeros((hidden_dim,))
-
-
+    self.params['gamma2'], self.params['beta2'] = np.ones(hidden_dim), np.zeros(hidden_dim)
 
     # 第三层 最终把隐层中的数据输出为分类
     num_input = hidden_dim
     num_out = num_classes
     self.params['W3'] = weight_scale * np.random.randn(num_input,num_out)
     self.params['b3'] = np.zeros((num_out,))
-
-
-
+    # self.params['gamma3'], self.params['beta3'] = np.ones(num_out), np.zeros(num_out)
 
 
     # C, H, W = input_dim
@@ -134,12 +163,20 @@ class ThreeLayerConvNet(object):
     Input / output: Same API as TwoLayerNet in fc_net.py.
     """
     W1, b1 = self.params['W1'], self.params['b1']
+    W_2, b_2 = self.params['W_2'], self.params['b_2']
+
     W2, b2 = self.params['W2'], self.params['b2']
     W3, b3 = self.params['W3'], self.params['b3']
-    
+    gamma, beta = self.params['gamma'], self.params['beta']
+    gamma2, beta2 = self.params['gamma2'], self.params['beta2']
+    bn_param1 = self.params['bn_param1']
+    bn_param2 = self.params['bn_param2']
+    dropout_param = self.params['dropout_param']
+
     # pass conv_param to the forward pass for the convolutional layer
     filter_size = W1.shape[2]
     conv_param = self.params['conv_param']
+    conv_param_2 = self.params['conv_param_2']
 
     # pass pool_param to the forward pass for the max-pooling layer
     pool_param = self.params['pool_param']
@@ -150,10 +187,28 @@ class ThreeLayerConvNet(object):
     # computing the class scores for X and storing them in the scores          #
     # variable.                                                                #
     ############################################################################
+    N,C,H,W = X.shape
 
-    conv_out,conv_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
-    affine_out,affine_cache = affine_relu_forward(conv_out,W2,b2)
+
+    # conv_relu_pool_forward -> batchnorm
+    conv_out,conv_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param, dropout_param)
+    # print conv_out.shape
+    conv_out,batch_norm_cache = spatial_batchnorm_forward(conv_out, gamma, beta, bn_param1)
+    # conv_out: (batch_size,C,conv_H,conv_W)
+
+    # conv->relu
+    # 这里再加一层卷积层  conv_forward_strides(x, w, b, conv_param): return out, cache
+    conv_out_2,conv_cache_2 = conv_forward_fast(conv_out, W_2, b_2, conv_param_2)
+
+    # print conv_out.shape
+    affine_relu_out,affine_cache = affine_relu_forward(conv_out_2,W2,b2)
+    # print conv_out.shape,affine_out.shape  (N,hidden_dims)
+
+    affine_out,bn2_cache = batchnorm_forward(affine_relu_out, gamma2, beta2, bn_param2)
+     # print affine_out.shape
+
     out,cache = affine_forward(affine_out,W3,b3)
+
     scores = out
 
 
@@ -181,21 +236,44 @@ class ThreeLayerConvNet(object):
     loss,dscores = softmax_loss(scores,y)
     loss += 0.5 * self.reg *(np.sum(W1*W1) +np.sum(W2*W2)+np.sum(W3*W3))
 
+
     dx3,dW3,db3 = affine_backward(dscores,cache)
     dW3 += self.reg*W3
 
-    dx2,dW2,db2 = affine_relu_backward(dx3,affine_cache)
+    dx2, dgamma2, dbeta2 = batchnorm_backward(dx3, bn2_cache)
+    dgamma2 += self.reg * gamma2
+    dbeta2 += self.reg * beta2
+    dx2,dW2,db2 = affine_relu_backward(dx2,affine_cache)
     dW2 += self.reg * W2
+
+
+    dx_2,dW_2,db_2 = conv_backward_strides(dx2, conv_cache_2)
+    dW_2 += self.reg * W_2
+
+    # spatial_batchnorm_backward(dout, cache) return dx, dgamma, dbeta
+    dx2, dgamma, dbeta = spatial_batchnorm_backward(dx_2, batch_norm_cache)
+    dgamma += self.reg * gamma
+    dbeta += self.reg * beta
 
     dx1,dW1,db1 = conv_relu_pool_backward(dx2,conv_cache)
     dW1 += self.reg * W1
 
+
+
+
     grads['W1'] = dW1
+    grads['W_2'] = dW_2
     grads['W2'] = dW2
     grads['W3'] = dW3
     grads['b1'] = db1
+    grads['b_2'] = db_2
     grads['b2'] = db2
     grads['b3'] = db3
+    grads['gamma'] = dgamma
+    grads['beta'] = dbeta
+    grads['gamma2'] = dgamma2
+    grads['beta2'] = dbeta2
+
 
 
 
@@ -220,7 +298,7 @@ class ThreeLayerConvNet(object):
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
-    
+
     return loss, grads
   
   
