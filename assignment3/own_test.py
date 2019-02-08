@@ -112,14 +112,16 @@ while True:
         p = 0  # go from start of data
     inputs = [char_to_ix[ch] for ch in data[p:p + seq_length]] # 从data中任意取出一段
     targets = [char_to_ix[ch] for ch in data[p + 1:p + seq_length + 1]] # 找到对应inputs 每一个字母对应的下一个字
+    # seq_length  25
 
-    if n % 100 == 0:
-        print 'inputs:', data[p:p + seq_length]
-        print 'targets:', targets
+    # if n % 100 == 0:
+    #     print 'inputs:', data[p:p + seq_length]
+    #     print 'targets:', targets
 
     # sample from the model now and then
     if n % 100 == 0:
-        sample_ix = sample(hprev, inputs[0], 200)
+        sample_ix = sample(hprev, inputs[0], 400)
+        # len(sample_ix)  #200
         txt = ''.join(ix_to_char[ix] for ix in sample_ix)
         print '----\n %s \n----' % (txt,)
 
@@ -129,12 +131,12 @@ while True:
     smooth_loss = smooth_loss * 0.999 + loss * 0.001
     if n % 100 == 0: print 'iter %d, loss: %f' % (n, smooth_loss)  # print progress
 
-    # perform parameter update with Adagrad
+    # perform parameter update with Adagrad 更新参数
     for param, dparam, mem in zip([Wxh, Whh, Why, bh, by],
                                   [dWxh, dWhh, dWhy, dbh, dby],
                                   [mWxh, mWhh, mWhy, mbh, mby]):
         mem += dparam * dparam
         param += -learning_rate * dparam / np.sqrt(mem + 1e-8)  # adagrad update
 
-    p += seq_length  # move data pointer
+    p += seq_length  # move data pointer  去截取下一段文本
     n += 1  # iteration counter

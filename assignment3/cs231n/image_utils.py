@@ -1,3 +1,4 @@
+# coding=UTF-8
 import urllib2, os, tempfile
 
 import numpy as np
@@ -90,7 +91,8 @@ def image_from_url(url):
     with open(fname, 'wb') as ff:
       ff.write(f.read())
     img = imread(fname)
-    os.remove(fname)
+    # 这里注掉，不然报错
+    # os.remove(fname)
     return img
   except urllib2.URLError as e:
     print 'URL Error: ', e.reason, url
