@@ -263,6 +263,9 @@ class CaptioningRNN(object):
             if self.cell_type == 'rnn':
                 h_next,_ = rnn_step_forward(x, prev_h, Wx, Wh, b)
                 # print prev_h :(2L, 512L) h_next:
+            elif self.cell_type == 'lstm':
+                h_next ,next_c, caches = lstm_step_forward(x,prev_h,prev_c,Wx,Wh,b)
+                prev_c = next_c
 
             prev_h = h_next
             h_next = np.expand_dims(h_next,axis=1) #(2,1,512)
